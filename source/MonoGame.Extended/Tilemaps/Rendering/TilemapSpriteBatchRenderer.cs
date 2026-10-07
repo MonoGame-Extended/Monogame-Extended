@@ -223,6 +223,76 @@ public sealed class TilemapSpriteBatchRenderer
     }
 
     /// <summary>
+    /// Draws the rows of a tile layer whose bottom edge falls within a world-space Y range.
+    /// </summary>
+    /// <param name="spriteBatch">The sprite batch to draw with.</param>
+    /// <param name="camera">The camera providing the view transform and visible bounds.</param>
+    /// <param name="layerName">The name of the tile layer to draw.</param>
+    /// <param name="minY">The inclusive lower bound of the range, in world space.</param>
+    /// <param name="maxY">The exclusive upper bound of the range, in world space.</param>
+    /// <remarks>
+    /// A row is drawn if its bottom edge is within [minY, maxY). Draw the layer in consecutive
+    /// ranges with entities drawn between calls to sort them with tiles by Y.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">Thrown if spriteBatch, camera, or layerName is null.</exception>
+    /// <exception cref="KeyNotFoundException">Thrown if the layer name is not found.</exception>
+    /// <exception cref="ArgumentException">Thrown if the layer is not a tile layer.</exception>
+    /// <exception cref="NotSupportedException">Thrown if the tilemap is not orthogonal.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if no tilemap is loaded.</exception>
+    public void DrawLayer(SpriteBatch spriteBatch, OrthographicCamera camera, string layerName, float minY, float maxY)
+    {
+        ArgumentNullException.ThrowIfNull(spriteBatch);
+        ArgumentNullException.ThrowIfNull(camera);
+        ArgumentNullException.ThrowIfNull(layerName);
+
+        ThrowIfNoTilemap();
+
+        if (_tilemap.Layers[layerName] is not TilemapTileLayer tileLayer)
+        {
+            throw new ArgumentException($"Layer '{layerName}' is not a tile layer.", nameof(layerName));
+        }
+
+        DrawTileLayerRows(spriteBatch, camera, tileLayer, minY, maxY);
+    }
+
+    /// <summary>
+    /// Draws the rows of a tile layer whose bottom edge falls within a world-space Y range.
+    /// </summary>
+    /// <param name="spriteBatch">The sprite batch to draw with.</param>
+    /// <param name="camera">The camera providing the view transform and visible bounds.</param>
+    /// <param name="layerIndex">The zero-based index of the tile layer to draw.</param>
+    /// <param name="minY">The inclusive lower bound of the range, in world space.</param>
+    /// <param name="maxY">The exclusive upper bound of the range, in world space.</param>
+    /// <remarks>
+    /// A row is drawn if its bottom edge is within [minY, maxY). Draw the layer in consecutive
+    /// ranges with entities drawn between calls to sort them with tiles by Y.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">Thrown if spriteBatch or camera is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if layerIndex is out of range.</exception>
+    /// <exception cref="ArgumentException">Thrown if the layer is not a tile layer.</exception>
+    /// <exception cref="NotSupportedException">Thrown if the tilemap is not orthogonal.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if no tilemap is loaded.</exception>
+    public void DrawLayer(SpriteBatch spriteBatch, OrthographicCamera camera, int layerIndex, float minY, float maxY)
+    {
+        ArgumentNullException.ThrowIfNull(spriteBatch);
+        ArgumentNullException.ThrowIfNull(camera);
+
+        ThrowIfNoTilemap();
+
+        if (layerIndex < 0 || layerIndex >= _tilemap.Layers.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(layerIndex));
+        }
+
+        if (_tilemap.Layers[layerIndex] is not TilemapTileLayer tileLayer)
+        {
+            throw new ArgumentException($"Layer at index {layerIndex} is not a tile layer.", nameof(layerIndex));
+        }
+
+        DrawTileLayerRows(spriteBatch, camera, tileLayer, minY, maxY);
+    }
+
+    /// <summary>
     /// Draws one or more tile layers by name, in the order specified.
     /// </summary>
     /// <param name="spriteBatch">The sprite batch to draw with.</param>
@@ -365,6 +435,26 @@ public sealed class TilemapSpriteBatchRenderer
             DrawTileLayerCore(spriteBatch, camera, tileLayer);
             spriteBatch.End();
         }
+    }
+
+    private void DrawTileLayerRows(SpriteBatch spriteBatch, OrthographicCamera camera, TilemapTileLayer tileLayer, float minY, float maxY)
+    {
+        if (_tilemap.Orientation != TilemapOrientation.Orthogonal)
+        {
+            throw new NotSupportedException("Drawing a range of rows is only supported for orthogonal tilemaps.");
+        }
+
+        if (!tileLayer.IsVisible)
+        {
+            return;
+        }
+
+        Rectangle visibleRegion = ComputeVisibleTileRegion(camera, tileLayer);
+        Rectangle region = TilemapRendererShared.ClampTileRegionToRows(visibleRegion, tileLayer, minY, maxY);
+
+        BeginLayerBatch(spriteBatch, camera, tileLayer.ParallaxFactor);
+        DrawTileRegion(spriteBatch, tileLayer, region);
+        spriteBatch.End();
     }
 
     private void DrawImageLayerCore(SpriteBatch spriteBatch, OrthographicCamera camera, TilemapImageLayer imageLayer)
@@ -524,15 +614,19 @@ public sealed class TilemapSpriteBatchRenderer
     private void DrawTileLayerCore(SpriteBatch spriteBatch, OrthographicCamera camera, TilemapTileLayer tileLayer)
     {
         Rectangle visibleRegion = ComputeVisibleTileRegion(camera, tileLayer);
+        DrawTileRegion(spriteBatch, tileLayer, visibleRegion);
+    }
 
-        if (visibleRegion.Width <= 0 || visibleRegion.Height <= 0)
+    private void DrawTileRegion(SpriteBatch spriteBatch, TilemapTileLayer tileLayer, Rectangle region)
+    {
+        if (region.Width <= 0 || region.Height <= 0)
         {
             return;
         }
 
         Color layerColor = ComputeLayerColor(tileLayer);
 
-        foreach (TilemapTileEntry entry in tileLayer.GetTilesInRegion(visibleRegion))
+        foreach (TilemapTileEntry entry in tileLayer.GetTilesInRegion(region))
         {
             int localId = entry.Tile.GetLocalId(_tilemap.Tilesets, out TilemapTileset tileset);
 

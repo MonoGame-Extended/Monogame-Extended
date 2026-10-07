@@ -151,6 +151,25 @@ internal static class TilemapRendererShared
         // If the caller already configured a wrap state (or any other custom state), use it as-is.
         return samplerState;
     }
+
+    internal static Rectangle ClampTileRegionToRows(Rectangle region, TilemapTileLayer tileLayer, float minY, float maxY)
+    {
+        if (float.IsNaN(minY) || float.IsNaN(maxY))
+        {
+            return new Rectangle(region.X, region.Y, region.Width, 0);
+        }
+
+        // Row r's bottom edge is at Offset.Y + (r + 1) * TileHeight, so the first row at or past minY is
+        // ceil((minY - Offset.Y) / TileHeight) - 1. The same formula on maxY gives the exclusive end row.
+        // Both are clamped before the int cast so infinite or very large bounds can't overflow.
+        float firstRow = (minY - tileLayer.Offset.Y) / tileLayer.TileHeight - 1f;
+        float endRow = (maxY - tileLayer.Offset.Y) / tileLayer.TileHeight - 1f;
+
+        int startY = Math.Max(region.Top, (int)Math.Ceiling(Math.Clamp(firstRow, 0f, tileLayer.Height)));
+        int endY = Math.Min(region.Bottom, (int)Math.Ceiling(Math.Clamp(endRow, 0f, tileLayer.Height)));
+
+        return new Rectangle(region.X, startY, region.Width, endY - startY);
+    }
 }
 
 internal sealed class LayerModel : IDisposable

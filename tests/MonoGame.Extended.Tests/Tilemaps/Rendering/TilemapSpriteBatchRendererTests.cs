@@ -197,6 +197,151 @@ public class TilemapSpriteBatchRendererTests
         Assert.Throws<InvalidOperationException>(() => renderer.DrawLayer(_spriteBatch, camera, 0));
     }
 
+    // ---- DrawLayer with Y range ----
+
+    [Fact]
+    public void DrawLayer_WithYRange_ByName_WithNullLayerName_ThrowsArgumentNullException()
+    {
+        TilemapSpriteBatchRenderer renderer = new TilemapSpriteBatchRenderer();
+        Tilemap tilemap = CreateSimpleTilemap();
+        renderer.LoadTilemap(tilemap);
+        OrthographicCamera camera = new OrthographicCamera(_graphicsDevice);
+
+        Assert.Throws<ArgumentNullException>(() => renderer.DrawLayer(_spriteBatch, camera, (string)null, 0f, 64f));
+    }
+
+    [Fact]
+    public void DrawLayer_WithYRange_ByIndex_WithIndexBeyondEnd_ThrowsArgumentOutOfRangeException()
+    {
+        TilemapSpriteBatchRenderer renderer = new TilemapSpriteBatchRenderer();
+        Tilemap tilemap = CreateSimpleTilemap();
+        renderer.LoadTilemap(tilemap);
+        OrthographicCamera camera = new OrthographicCamera(_graphicsDevice);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => renderer.DrawLayer(_spriteBatch, camera, 999, 0f, 64f));
+    }
+
+    [Fact]
+    public void DrawLayer_WithYRange_WithNonTileLayer_ThrowsArgumentException()
+    {
+        TilemapSpriteBatchRenderer renderer = new TilemapSpriteBatchRenderer();
+        Tilemap tilemap = CreateSimpleTilemap();
+        tilemap.Layers.Add(new TilemapObjectLayer("Objects"));
+        renderer.LoadTilemap(tilemap);
+        OrthographicCamera camera = new OrthographicCamera(_graphicsDevice);
+
+        Assert.Throws<ArgumentException>(() => renderer.DrawLayer(_spriteBatch, camera, "Objects", 0f, 64f));
+    }
+
+    [Fact]
+    public void DrawLayer_WithYRange_WithoutLoadedTilemap_ThrowsInvalidOperationException()
+    {
+        TilemapSpriteBatchRenderer renderer = new TilemapSpriteBatchRenderer();
+        OrthographicCamera camera = new OrthographicCamera(_graphicsDevice);
+
+        Assert.Throws<InvalidOperationException>(() => renderer.DrawLayer(_spriteBatch, camera, "TestLayer", 0f, 64f));
+    }
+
+    [Fact]
+    public void DrawLayer_WithYRange_WithIsometricTilemap_ThrowsNotSupportedException()
+    {
+        TilemapSpriteBatchRenderer renderer = new TilemapSpriteBatchRenderer();
+        Tilemap tilemap = new Tilemap(
+            name: "IsometricMap",
+            width: 10,
+            height: 10,
+            tileWidth: 64,
+            tileHeight: 32,
+            orientation: TilemapOrientation.Isometric);
+        tilemap.Layers.Add(new TilemapTileLayer(
+            name: "TestLayer",
+            width: 10,
+            height: 10,
+            tileWidth: 64,
+            tileHeight: 32));
+        renderer.LoadTilemap(tilemap);
+        OrthographicCamera camera = new OrthographicCamera(_graphicsDevice);
+
+        Assert.Throws<NotSupportedException>(() => renderer.DrawLayer(_spriteBatch, camera, "TestLayer", 0f, 64f));
+    }
+
+    // ---- ClampTileRegionToRows ----
+
+    [Theory]
+    [InlineData(64f, 96f, 1, 1)]
+    [InlineData(65f, 128f, 2, 1)]
+    [InlineData(65f, 129f, 2, 2)]
+    [InlineData(0f, 32f, 0, 0)]
+    [InlineData(32f, 32f, 0, 0)]
+    public void ClampTileRegionToRows_SelectsRowsByBottomEdge(float minY, float maxY, int expectedY, int expectedHeight)
+    {
+        Tilemap tilemap = CreateSimpleTilemap();
+        TilemapTileLayer layer = (TilemapTileLayer)tilemap.Layers["TestLayer"];
+        Rectangle region = new Rectangle(0, 0, 10, 10);
+
+        Rectangle result = TilemapRendererShared.ClampTileRegionToRows(region, layer, minY, maxY);
+
+        Assert.Equal(expectedY, result.Y);
+        Assert.Equal(expectedHeight, result.Height);
+    }
+
+    [Fact]
+    public void ClampTileRegionToRows_WithAdjacentRanges_CoversEveryRowOnce()
+    {
+        Tilemap tilemap = CreateSimpleTilemap();
+        TilemapTileLayer layer = (TilemapTileLayer)tilemap.Layers["TestLayer"];
+        Rectangle region = new Rectangle(0, 0, 10, 10);
+
+        Rectangle above = TilemapRendererShared.ClampTileRegionToRows(region, layer, float.NegativeInfinity, 150f);
+        Rectangle below = TilemapRendererShared.ClampTileRegionToRows(region, layer, 150f, float.PositiveInfinity);
+
+        Assert.Equal(0, above.Y);
+        Assert.Equal(above.Bottom, below.Y);
+        Assert.Equal(10, below.Bottom);
+    }
+
+    [Fact]
+    public void ClampTileRegionToRows_WithLayerOffset_ShiftsRows()
+    {
+        Tilemap tilemap = CreateSimpleTilemap();
+        TilemapTileLayer layer = (TilemapTileLayer)tilemap.Layers["TestLayer"];
+        layer.Offset = new Vector2(0f, 16f);
+        Rectangle region = new Rectangle(0, 0, 10, 10);
+
+        Rectangle result = TilemapRendererShared.ClampTileRegionToRows(region, layer, 80f, 112f);
+
+        Assert.Equal(1, result.Y);
+        Assert.Equal(1, result.Height);
+    }
+
+    [Fact]
+    public void ClampTileRegionToRows_StaysWithinVisibleRegion()
+    {
+        Tilemap tilemap = CreateSimpleTilemap();
+        TilemapTileLayer layer = (TilemapTileLayer)tilemap.Layers["TestLayer"];
+        Rectangle region = new Rectangle(2, 3, 4, 2);
+
+        Rectangle result = TilemapRendererShared.ClampTileRegionToRows(region, layer, 0f, 320f);
+
+        Assert.Equal(region, result);
+    }
+
+    [Theory]
+    [InlineData(float.PositiveInfinity, float.PositiveInfinity)]
+    [InlineData(float.NaN, 320f)]
+    [InlineData(0f, float.NaN)]
+    [InlineData(96f, 64f)]
+    public void ClampTileRegionToRows_WithEmptyOrInvalidRange_SelectsNoRows(float minY, float maxY)
+    {
+        Tilemap tilemap = CreateSimpleTilemap();
+        TilemapTileLayer layer = (TilemapTileLayer)tilemap.Layers["TestLayer"];
+        Rectangle region = new Rectangle(0, 0, 10, 10);
+
+        Rectangle result = TilemapRendererShared.ClampTileRegionToRows(region, layer, minY, maxY);
+
+        Assert.True(result.Height <= 0);
+    }
+
     // ---- DrawLayers ----
 
     [Fact]
