@@ -8,8 +8,8 @@
 
     <!-- Version Configuration -->
     <PropertyGroup>
-        <Version>6.1.1</Version>
-        <MonoGameVersion>3.8.5</MonoGameVersion>
+        <Version>6.2.0</Version>
+        <MonoGameVersion>3.8.6</MonoGameVersion>
         <KNIVersion>4.2.9001</KNIVersion>
     </PropertyGroup>
 
