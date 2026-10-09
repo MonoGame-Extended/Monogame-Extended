@@ -99,7 +99,7 @@ public static class Utf8JsonReaderExtensions
         var value = reader.GetString();
         if (string.IsNullOrEmpty(value))
         {
-            return [];
+            return Array.Empty<T>();
         }
 
         Span<string> values = value.Split(' ');
