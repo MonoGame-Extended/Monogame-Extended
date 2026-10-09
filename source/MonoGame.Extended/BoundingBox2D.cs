@@ -205,8 +205,8 @@ namespace MonoGame.Extended
         /// Gets an array containing the four corner positions of this bounding box.
         /// </summary>
         /// <returns>
-        /// An array of 4 corner positions in counter-clockwise order starting from the minimum corner:
-        /// bottom-left, bottom-right, top-right, top-left.
+        /// An array of 4 corner positions in clockwise order starting from the minimum corner:
+        /// top-left, top-right, bottom-right, bottom-left.
         /// </returns>
         public readonly Vector2[] GetCorners()
         {
@@ -224,7 +224,7 @@ namespace MonoGame.Extended
         /// </summary>
         /// <param name="corners">
         /// The array to write corner positions into. Must have at least 4 elements.
-        /// Corners are written in counter-clockwise order starting from the minimum corner.
+        /// Corners are written in clockwise order starting from the minimum corner.
         /// </param>
         /// <exception cref="ArgumentNullException">
         /// Thrown when <paramref name="corners"/> is <see langword="null"/>.
