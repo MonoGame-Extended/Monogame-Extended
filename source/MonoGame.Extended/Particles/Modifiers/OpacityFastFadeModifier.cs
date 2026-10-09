@@ -23,6 +23,11 @@ namespace MonoGame.Extended.Particles.Modifiers;
 ///     Unlike other modifiers that accumulate changes over time, this modifier directly sets
 ///     the opacity value each frame based on the particle's age and initial opacity.
 ///   </item>
+///   <item>
+///     <see cref="Particle.InitialOpacity"/> must be initialized to the desired release-time opacity.
+///     <see cref="ParticleEmitter"/> does this automatically; callers that use
+///     <see cref="ParticleBuffer"/> directly must also initialize <see cref="Particle.Opacity"/>.
+///   </item>
 /// </list>
 /// </remarks>
 public sealed class OpacityFastFadeModifier : Modifier

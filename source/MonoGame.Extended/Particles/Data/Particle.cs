@@ -52,13 +52,19 @@ public unsafe struct Particle
     public fixed float TriggeredPos[2];
 
     /// <summary>
-    /// The opacity (alpha) value of this particle, ranging from 0.0 (transparent) to 1.0 (opaque).
+    /// The current mutable opacity (alpha) value of this particle, ranging from 0.0 (transparent) to 1.0 (opaque).
     /// </summary>
     public float Opacity;
 
     /// <summary>
     /// The opacity (alpha) value assigned to this particle at release time.
     /// </summary>
+    /// <remarks>
+    /// <see cref="MonoGame.Extended.Particles.Modifiers.OpacityFastFadeModifier"/> uses this value as the baseline when calculating
+    /// <see cref="Opacity"/>. <see cref="ParticleEmitter"/> initializes this field from <see cref="Opacity"/>
+    /// when it releases a particle. Callers that obtain particles directly from <see cref="ParticleBuffer"/> must
+    /// set this field with the desired initial opacity when using that modifier.
+    /// </remarks>
     public float InitialOpacity;
 
     /// <summary>
