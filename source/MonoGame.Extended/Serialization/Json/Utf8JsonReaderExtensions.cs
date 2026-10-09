@@ -91,7 +91,7 @@ public static class Utf8JsonReaderExtensions
             items.Add(JsonSerializer.Deserialize(ref reader, typeInfo));
         }
 
-        return [.. items];
+        return items.ToArray();
     }
 
     private static T[] ReadAsDelimitedString<T>(this ref Utf8JsonReader reader)
