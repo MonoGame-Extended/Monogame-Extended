@@ -2,7 +2,9 @@ using System;
 using System.IO;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Xna.Framework;
+using MonoGame.Extended.Content;
 using MonoGame.Extended.Content.ContentReaders;
 using MonoGame.Extended.Content.TexturePacker;
 using MonoGame.Extended.Serialization.Json;
@@ -12,6 +14,8 @@ namespace MonoGame.Extended.Tests.Serialization;
 
 public sealed class JsonSerializerTests
 {
+    private static readonly string UnitTestDataFolder = "UnitTestData";
+
     [Fact]
     public void Vector2_RoundTrip_WithContext()
     {
@@ -223,4 +227,78 @@ public sealed class JsonSerializerTests
         JsonContentTypeReader<Vector2>.Register(ExtendedJsonSerializerContext.Default.Vector2);
     }
 #endif
+
+    [Fact]
+    public void JsonContentLoader_Legacy_DeserializesArbitraryPocoViaReflection()
+    {
+        var tempFileName = $"test_reflection_{Guid.NewGuid():N}.json";
+        var tempFilePath = GenerateTempFile(tempFileName,
+            """{ "title": "Reflection", "value": 42 }""");
+
+        try
+        {
+            var contentManager = new MockContentManager();
+            contentManager.RootDirectory = UnitTestDataFolder;
+
+#pragma warning disable CS0618 // We're testing the obsolete flow.
+            var loader = new JsonContentLoader();
+            var result = contentManager.Load<TestPoco>(tempFileName, loader);
+#pragma warning restore CS0618
+
+            Assert.NotNull(result);
+            Assert.Equal("Reflection", result.Title);
+            Assert.Equal(42, result.Value);
+        }
+        finally
+        {
+            if (File.Exists(tempFilePath))
+            {
+                File.Delete(tempFilePath);
+            }
+        }
+    }
+
+    [Fact]
+    public void JsonContentLoaderT_WithJsonTypeInfo_DeserializesCorrectly()
+    {
+        var tempFileName = $"test_native_aot_{Guid.NewGuid():N}.json";
+        var tempFilePath = GenerateTempFile(tempFileName,
+            """{ "title": "NativeAOT", "value": 42 }""");
+
+        try
+        {
+            var contentManager = new MockContentManager();
+            contentManager.RootDirectory = UnitTestDataFolder;
+
+            var loader = new JsonContentLoader<TestPoco>(CustomTestPocoSerializerContext.Default.TestPoco);
+            var result = contentManager.Load(tempFileName, loader);
+
+            Assert.NotNull(result);
+            Assert.Equal("NativeAOT", result.Title);
+            Assert.Equal(42, result.Value);
+        }
+        finally
+        {
+            if (File.Exists(tempFilePath))
+            {
+                File.Delete(tempFilePath);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Creates a temp file with the given content and returns its path.
+    /// </summary>
+    /// <param name="fileName">File name, including extension.</param>
+    /// <param name="content">Content to write to the file.</param>
+    /// <returns>Full path of the file that is created.</returns>
+    private static string GenerateTempFile(string fileName, string content)
+    {
+        var testDataDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, UnitTestDataFolder);
+        Directory.CreateDirectory(testDataDir);
+        var tempFilePath = Path.Combine(testDataDir, fileName);
+        File.WriteAllText(tempFilePath, content);
+
+        return tempFilePath;
+    }
 }
