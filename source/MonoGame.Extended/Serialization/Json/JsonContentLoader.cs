@@ -22,7 +22,7 @@ namespace MonoGame.Extended.Serialization.Json
                 return JsonSerializer.Deserialize(stream, typeInfo);
             }
 
-            // Fall back to refletion.
+            // Fall back to reflection.
             return LegacyDeserialize<T>(stream, contentManager, path)!;
         }
 
