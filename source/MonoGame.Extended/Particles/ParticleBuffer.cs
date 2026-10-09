@@ -137,6 +137,12 @@ public unsafe class ParticleBuffer : IDisposable
     /// <summary>
     /// Allocates space in the circular buffer for a specified number of particles to be released.
     /// </summary>
+    /// <remarks>
+    /// The allocated slots can contain data from previously released particles. Callers that initialize particles
+    /// manually must set every field required by their modifiers before updating or rendering them. In particular,
+    /// when using <see cref="MonoGame.Extended.Particles.Modifiers.OpacityFastFadeModifier"/>, initialize both
+    /// <see cref="Particle.Opacity"/> and <see cref="Particle.InitialOpacity"/>.
+    /// </remarks>
     /// <param name="releaseQuantity">The number of particles to allocate space for.</param>
     /// <returns>
     /// A <see cref="ParticleIterator"/> positioned at the start of the newly allocated particles,
