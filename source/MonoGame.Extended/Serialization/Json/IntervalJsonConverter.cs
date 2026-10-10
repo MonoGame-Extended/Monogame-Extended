@@ -1,6 +1,8 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace MonoGame.Extended.Serialization.Json;
 
@@ -43,8 +45,30 @@ public class IntervalJsonConverter<T> : JsonConverter<Interval<T>> where T : ICo
     {
         ArgumentNullException.ThrowIfNull(writer);
         writer.WriteStartArray();
+
+        if (options?.TypeInfoResolver != null
+            && options.GetTypeInfo(typeof(T)) is JsonTypeInfo<T> typeInfo)
+        {
+            JsonSerializer.Serialize(writer, value.Min, typeInfo);
+            JsonSerializer.Serialize(writer, value.Max, typeInfo);
+        }
+        else
+        {
+            LegacyWrite(writer, value, options);
+        }
+
+        writer.WriteEndArray();
+    }
+
+    [UnconditionalSuppressMessage("AOT",
+        "IL3050:RequiresDynamicCode",
+        Justification = "Fallback for JIT scenarios where TypeInfoResolver is not configured.")]
+    [UnconditionalSuppressMessage("Trimming",
+        "IL2026:RequiresUnreferencedCode",
+        Justification = "Fallback for JIT scenarios where TypeInfoResolver is not configured.")]
+    private static void LegacyWrite(Utf8JsonWriter writer, Interval<T> value, JsonSerializerOptions options)
+    {
         JsonSerializer.Serialize(writer, value.Min, options);
         JsonSerializer.Serialize(writer, value.Max, options);
-        writer.WriteEndArray();
     }
 }

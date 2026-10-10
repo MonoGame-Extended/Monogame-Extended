@@ -1,4 +1,4 @@
-﻿// Copyright (c) Craftwork Games. All rights reserved.
+// Copyright (c) Craftwork Games. All rights reserved.
 // Licensed under the MIT license.
 // See LICENSE file in the project root for full license information.
 
@@ -17,7 +17,7 @@ internal static class TexturePackerFileReader
 
     internal static TexturePackerFileContent Read(Stream stream)
     {
-        var tpFile = JsonSerializer.Deserialize<TexturePackerFileContent>(stream);
+        var tpFile = JsonSerializer.Deserialize(stream, TexturePackerJsonSerializerContext.Default.TexturePackerFileContent);
         return tpFile;
     }
 }

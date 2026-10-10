@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
@@ -7,6 +8,9 @@ using System.Text.Json.Serialization;
 
 namespace MonoGame.Extended.Serialization.Json
 {
+    [RequiresUnreferencedCode($"{nameof(BaseTypeJsonConverter<T>)} uses reflection to inspect types and properties and is not compatible with Native AOT.")]
+    [RequiresDynamicCode($"{nameof(BaseTypeJsonConverter<T>)} requires dynamic code generation for polymorphic serialization and is not compatible with Native AOT.")]
+    [Obsolete($"{nameof(BaseTypeJsonConverter<T>)} is deprecated. Use System.Text.Json polymorphic type discrimination ([JsonPolymorphic], [JsonDerivedType]) instead.")]
     public abstract class BaseTypeJsonConverter<T> : JsonConverter<T>
     {
         private readonly string _suffix;
@@ -36,6 +40,8 @@ namespace MonoGame.Extended.Serialization.Json
 
         /// <inheritdoc />
         /// <exception cref="InvalidOperationException" />
+        [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode", Justification = "Class is annotated with RequiresDynamicCode.")]
+        [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode", Justification = "Class is annotated with RequiresUnreferencedCode.")]
         public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             using (JsonDocument doc = JsonDocument.ParseValue(ref reader))
@@ -57,6 +63,8 @@ namespace MonoGame.Extended.Serialization.Json
         /// <exception cref="ArgumentNullException">
         /// Throw if <paramref name="writer"/> is <see langword="null"/>.
         /// </exception>
+        [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode", Justification = "Class is annotated with RequiresDynamicCode.")]
+        [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode", Justification = "Class is annotated with RequiresUnreferencedCode.")]
         public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
         {
             var type = value.GetType();

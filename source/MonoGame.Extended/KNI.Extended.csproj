@@ -4,6 +4,7 @@
         <DefineConstants>$(DefineConstants);KNI</DefineConstants>
         <Description>It makes KNI more awesome.</Description>
         <PackageTags>kni extended pipeline bmfont tiled texture atlas input viewport fps shapes sprite</PackageTags>
+        <IsAotCompatible>true</IsAotCompatible>
     </PropertyGroup>
 
     <ItemGroup>
